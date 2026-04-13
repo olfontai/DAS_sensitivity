@@ -1,4 +1,4 @@
-name: pykonal
+name: DAS_pykonal
 channels:
   - conda-forge
   - defaults
