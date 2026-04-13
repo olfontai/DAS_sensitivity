@@ -1,0 +1,11 @@
+name: pykonal
+channels:
+  - defaults
+dependencies:
+  - python=3.8
+  - numpy
+  - h5py
+  - scipy
+  - cython
+  - ipykernel
+prefix: C:\Users\liliv\anaconda3\envs\pykonal
