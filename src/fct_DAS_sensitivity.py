@@ -439,6 +439,22 @@ class DASSensor:
         self.depth = depth
     def values(self):
         return np.array([self.latitude, self.longitude, self.depth])
+    
+    def metadata(self):
+        """
+        Export all instance attributes as a dictionary.
+        """
+        return {
+            "azimuth": self.azimuth,
+            "dip": self.dip,
+            "gauge_length": self.gauge_length,
+            "wavelength": self.wavelength,
+            "velocity": self.velocity,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "depth": self.depth,
+        }
+
 
     def sensitivity(self, wave_type, azimuth_ray, dip_ray):
         DAS_az = np.radians(self.azimuth)

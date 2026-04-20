@@ -1,8 +1,8 @@
 # DAS_sensitivity
-Jupyter Notebook to assess DAS sensitivity to seismic waves, based on 3D sensitivity equations (dip and azimuth) in a ray-based approach.
+Jupyter Notebook to forward model the amplitude of a source recorded in a DAS array based on 3D sensitivity equations (dip and azimuth) in a ray-based approach.
 Code used in paper : 
 
-## STEPS
+## workflow
 1) Create travel time grid for all sensor using Pykonal
 2) Get sensitivity to a source
    
