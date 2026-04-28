@@ -849,11 +849,19 @@ class Ray:
             direction = -direction
 
         dlat, dlon, ddepth = direction.T
-        # Azimuth (clockwise from North)
-        azimuth = -np.degrees(np.arctan2(dlon, dlat)) % 360
 
-        # Horizontal distance
-        horizontal = np.sqrt(dlat**2 + dlon**2)
+        # Mean latitude for longitude scaling
+        mean_lat = np.radians(path_node[0].mean())
+
+        # Convert degrees to km
+        dy = dlat * 111.32
+        dx = dlon * 111.32 * np.cos(mean_lat)
+
+        # Azimuth
+        azimuth = -np.degrees(np.arctan2(dx, dy)) % 360
+
+        # Horizontal distance in km
+        horizontal = np.sqrt(dx**2 + dy**2)
 
         # Dip (positive downward)
         dip = -np.degrees(np.arctan2(ddepth, horizontal))
