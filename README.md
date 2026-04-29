@@ -53,13 +53,9 @@ Evaluate the sensitivity to sources distributed around the channel
 
 ## Known Issue for Windows Users
 
-When running on a Windows machine, you may encounter the following error when executing:
-
-
-`solver.solve()`
-Error Message
+When running on a Windows machine, you may encounter the following error when executing:`solver.solve()`<br>
+Error Message:<br>
 Buffer dtype mismatch, expected 'Py_ssize_t' but got 'long'
-Cause
 
 This is a known issue with Pykonal on Windows systems.
 
