@@ -55,8 +55,8 @@ Evaluate the sensitivity to sources distributed around the channel
 
 When running on a Windows machine, you may encounter the following error when executing:
 
-```python
-solver.solve()```
+
+`solver.solve()`
 Error Message
 Buffer dtype mismatch, expected 'Py_ssize_t' but got 'long'
 Cause
