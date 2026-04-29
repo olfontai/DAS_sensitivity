@@ -27,6 +27,12 @@ It also contains an object overview presenting all functions on:
 - Path (ray)
 - Source (moment tensor, single force, isotropic) 
 
+And some data for : 
+
+- Brady Hot Springs (BHS) with the array geometry and velocity model and measured amplitude for 9 sweeps with their source parameters
+- 2 fake DAS array in Belgium to make small-scale experiments
+- A single channel to play with the fiber orientation and velocity profile and observe the sensing capacities of the channel
+
 ---
 
 ## Workflow — Full Fiber Sensitivity to a Source
