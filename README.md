@@ -21,6 +21,12 @@ Additionally, you can:
 - analyze the **sensitivity of a single channel** to the surrounding space
 - evaluate the impact of the **velocity structure** on DAS sensitivity
 
+It also contains an object overview presenting all functions on: 
+
+- Reveiver (DAS)
+- Path (ray)
+- Source (moment tensor, single force, isotropic) 
+
 ---
 
 ## Workflow — Full Fiber Sensitivity to a Source
