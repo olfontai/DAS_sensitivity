@@ -91,6 +91,7 @@ self.cy_heap_index = np.full(
     fill_value=-1,
     dtype=np.intp
 )
+
 3. Reinstall Pykonal
 
 From the main folder containing setup.py:
@@ -100,9 +101,70 @@ Navigate to the folder:
 cd path/to/pykonal
 Run:
 pip install .
+
 4. Restart Your Kernel
 
 After installation is complete, restart your Python kernel.
 
 The issue should now be resolved.
 
+1. Download Pykonal from Source
+
+    Download the source code from:
+
+    https://github.com/malcolmw/pykonal
+
+    Then extract (unzip) the downloaded folder.
+
+---
+
+2. Modify the `heapq.pyx` File
+
+    Locate the following file:
+
+    ```
+    pykonal-master/pykonal-master/pykonal/heapq.pyx
+    ```
+
+    Find line 36 and change:
+
+    ```python
+    self.cy_heap_index = np.full(values.shape, fill_value=-1)
+    ```
+
+    to:
+
+    ```python
+    self.cy_heap_index = np.full(
+        values.shape,
+        fill_value=-1,
+        dtype=np.intp
+    )
+    ```
+
+---
+
+3. Reinstall Pykonal
+
+    From the main folder containing `setup.py`:
+
+    - Open Anaconda Prompt  
+    - Navigate to the folder:
+
+      ```bash
+      cd path/to/pykonal
+      ```
+
+    - Run:
+
+      ```bash
+      pip install .
+      ```
+
+---
+
+4. Restart Your Kernel
+
+    After installation is complete, restart your Python kernel.
+
+    The issue should now be resolved.
