@@ -9,6 +9,6 @@ In both spatial sampling is set to 1m
 
 The model space should be: 
 Altitude [-0.2, 0.2] 
-longitude [50.8228677, 50.8213637]
-latitude [4.3847586, 4.3887782]
+longitude [50.8231476, 50.8212337]
+latitude [4.3881258, 4.3854626]
 

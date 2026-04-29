@@ -1,12 +1,21 @@
 # DAS_sensitivity
-Jupyter Notebook to forward model the amplitude of a source recorded in a DAS array based on 3D sensitivity equations (dip and azimuth) in a ray-based approach.
-Code used in paper : 
+Jupyter Notebook to forward model the amplitude from a point source recorded by a DAS array based on 3D sensitivity equations (dip and azimuth) in a ray-based approach.
+Code used in paper : https://doi.org/10.31223/X56J3X
 
-## workflow
-1) Create travel time grid for all sensor using Pykonal
-2) Get sensitivity to a source
+## Content
+In this package you can create <u>traveltime grids</u>, model the recorded <u>amplitude</u> in the fiber and compare it to a measured amplitude to create a <u>rescaling factor</u> <br>
+Additionnaly, you can also look at the senitivity of a single channel to the space around it. <br>
+
+## workflow sensitivity to a source 
+1) Create travel time grid for all sensor using Pykonal<br>
+2) Get sensitivity to a source<br>
+3) Compare the modeled to the measured amplitude to isolate a correction factor<br>
+
+## workflow sensitivity of  single channel
+1) Create travel time grid for all sensor using Pykonal<br>
+2) Measure the snsitivity to sources scattered in the space <br>
    
-## known difficulties 
+## known difficulties for windows user 
 If you work on a windows machine you will have an error when running the solver.solve(): <br>
 'Buffer dtype mismatch, expected 'Py_ssize_t' but got 'long''<br>
 A solution exists on: https://github.com/malcolmw/pykonal/pull/46<br>

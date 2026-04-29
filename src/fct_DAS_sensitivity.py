@@ -207,8 +207,8 @@ class SeismicSource:
 
         elif isinstance(self.mechanism, IsotropicSource):
             A_P  = np.ones_like(nx) * self.mechanism.magnitude
-            A_SV = np.zeros_like(nx)
-            A_SH = np.zeros_like(nx)
+            A_SV = np.ones_like(nx) * self.mechanism.magnitude
+            A_SH = np.ones_like(nx) * self.mechanism.magnitude
 
         else:
             raise TypeError("Unknown mechanism type")
@@ -473,18 +473,18 @@ class DASSensor:
         # -------------------------------
         if self.wavelength is None:
             if wave_type in ['P', 'p']:
-                return cos_dep * np.sin(cos_dep / 2)
+                return cos_dep**2 # * np.sin(cos_dep / 2)
 
             if wave_type == 'SH':
                 sin_factor = np.sin(ray_az - DAS_az) * np.cos(DAS_dip)
-                return sin_factor * np.sin(cos_dep / 2)
+                return sin_factor * cos_dep #* np.sin(cos_dep / 2)
 
             if wave_type == 'SV':
                 sin_factor = (
                     -np.cos(DAS_dip)*np.sin(ray_dip)*np.cos(DAS_az - ray_az)
                     + np.sin(DAS_dip)*np.cos(ray_dip)
                 )
-                return sin_factor * np.sin(cos_dep / 2)
+                return sin_factor *cos_dep # np.sin(cos_dep / 2)
 
             if wave_type in ['S', 's']:
                 sv = self.sensitivity('SV', azimuth_ray, dip_ray)
@@ -498,23 +498,24 @@ class DASSensor:
             k = 2 * np.pi / self.wavelength
             g = self.gauge_length
             c = self.velocity if self.velocity is not None else 1.0
+            rescaling = 2/(k*g) # allow to match the values from the point strain sensing
 
             common_sin = np.sin((k * g / 2) * cos_dep)
             prefactor = (2 * c * k) / g
 
             if wave_type in ['P', 'p']:
-                return prefactor * cos_dep * common_sin
+                return  rescaling * cos_dep * common_sin # prefactor
 
             if wave_type == 'SV':
                 sv_term = (
                     -np.cos(DAS_dip)*np.sin(ray_dip)*np.cos(DAS_az - ray_az)
                     + np.sin(DAS_dip)*np.cos(ray_dip)
                 )
-                return prefactor * sv_term * common_sin
+                return  rescaling * sv_term * common_sin # prefactor
 
             if wave_type == 'SH':
                 sh_term = np.cos(DAS_dip) * np.sin(ray_az - DAS_az)
-                return prefactor * sh_term * common_sin
+                return  rescaling * sh_term * common_sin # prefactor
 
             if wave_type in ['S', 's']:
                 sv = self.sensitivity('SV', azimuth_ray, dip_ray)
@@ -902,6 +903,48 @@ class Ray:
 #########################################
 ######### DAS channel metadata ##########
 #########################################
+
+import math
+
+def distance_3d_km(lat1, lon1, depth1_km, lat2, lon2, depth2_km):
+    """
+    Calculate 3D distance (km) between two points defined by:
+    latitude, longitude, and depth (km).
+
+    Depth is positive downward (e.g., underground or below sea level).
+
+    Returns:
+        distance in kilometers
+    """
+
+    # Earth radius in km
+    R = 6371.0
+
+    # Convert lat/lon from degrees to radians
+    lat1, lon1 = math.radians(lat1), math.radians(lon1)
+    lat2, lon2 = math.radians(lat2), math.radians(lon2)
+
+    # Haversine formula for surface distance
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    )
+
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    surface_distance = R * c
+
+    # Depth difference
+    depth_diff = depth2_km - depth1_km
+
+    # Full 3D distance using Pythagoras
+    distance = math.sqrt(surface_distance**2 + depth_diff**2)
+
+    return distance
+
+
 
 R_EARTH = 6371.0  # km
 
