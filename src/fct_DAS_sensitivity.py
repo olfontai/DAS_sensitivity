@@ -170,18 +170,20 @@ class SeismicSource:
         if degrees:
             azimuth = np.radians(azimuth)
             dip = np.radians(dip)
+        
+        # Calculate unit vector n in spherical coordinates
+        nx = np.cos(dip) * np.cos(azimuth)
+        ny = np.cos(dip) * np.sin(azimuth)
+        nz = np.sin(dip)
+        # unit vector in the ray's direction
+        n = np.stack([nx, ny, nz], axis=-1)
+        t_sv = np.stack([-np.sin(dip) * np.cos(azimuth), -np.sin(dip) * np.sin(azimuth), np.cos(dip)], axis=-1)
+        t_sh = np.stack([np.sin(azimuth), -np.cos(azimuth), np.zeros_like(azimuth)], axis=-1)
+
 
 
         # ---- CASE 1: Moment Tensor ----
         if isinstance(self.mechanism, MomentTensor):
-            # --- Direction vectors ---
-            nx = np.sin(dip) * np.cos(azimuth)
-            ny = np.sin(dip) * np.sin(azimuth)
-            nz = np.cos(dip)
-
-            n = np.stack([nx, ny, nz], axis=-1)
-            t_sv = np.stack([np.cos(dip) * np.cos(azimuth),np.cos(dip) * np.sin(azimuth),np.sin(dip)], axis=-1)
-            t_sh = np.stack([-np.sin(azimuth),np.cos(azimuth),np.zeros_like(azimuth)], axis=-1)
 
             M = np.array(self.mechanism.as_matrix())
 
@@ -191,15 +193,7 @@ class SeismicSource:
 
         # ---- CASE 2: Single Force ----
         elif isinstance(self.mechanism, SingleForce):
-            # Calculate unit vector n in spherical coordinates
-            nx = np.cos(dip) * np.cos(azimuth)
-            ny = np.cos(dip) * np.sin(azimuth)
-            nz = np.sin(dip)
-            # unit vector in the ray's direction
-            n = np.stack([nx, ny, nz], axis=-1)
-            t_sv = np.stack([-np.sin(dip) * np.cos(azimuth), -np.sin(dip) * np.sin(azimuth), np.cos(dip)], axis=-1)
-            t_sh = np.stack([np.sin(azimuth), -np.cos(azimuth), np.zeros_like(azimuth)], axis=-1)
-
+            
             F = np.array(self.mechanism.as_vector())
 
             A_P = np.einsum('i,...i->...', F, n)
