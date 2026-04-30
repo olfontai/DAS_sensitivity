@@ -59,7 +59,7 @@ class SingleForce(SourceMechanism):
 
     def as_vector(self):
         """Return the force as a 3D NumPy vector."""
-        return np.array([self.fx, self.fy, self.fz])
+        return np.array([-self.fx, self.fy, self.fz])
 
     def describe(self):
         return f"Single force: ({self.fx}, {self.fy}, {self.fz})"
@@ -157,8 +157,8 @@ class SeismicSource:
 
         Returns
         -------
-        array or float
-            منتخب amplitude
+        float
+            orientation specific amplitude
         """
 
         if self.mechanism is None:
@@ -171,42 +171,44 @@ class SeismicSource:
             azimuth = np.radians(azimuth)
             dip = np.radians(dip)
 
-        # --- Direction vectors ---
-        nx = np.sin(dip) * np.cos(azimuth)
-        ny = np.sin(dip) * np.sin(azimuth)
-        nz = np.cos(dip)
 
-        n = np.stack([nx, ny, nz], axis=-1)
-
-        t_sv = np.stack([
-            np.cos(dip) * np.cos(azimuth),
-            np.cos(dip) * np.sin(azimuth),
-            -np.sin(dip)
-        ], axis=-1)
-
-        t_sh = np.stack([
-            -np.sin(azimuth),
-            np.cos(azimuth),
-            np.zeros_like(azimuth)
-        ], axis=-1)
-
-        # --- Mechanism handling ---
+        # ---- CASE 1: Moment Tensor ----
         if isinstance(self.mechanism, MomentTensor):
-            M = self.mechanism.as_matrix()
+            # --- Direction vectors ---
+            nx = np.sin(dip) * np.cos(azimuth)
+            ny = np.sin(dip) * np.sin(azimuth)
+            nz = np.cos(dip)
 
-            A_P  = np.einsum('...i,ij,...j->...', n, M, n)
-            A_SV = np.einsum('...i,ij,...j->...', t_sv, M, n)
-            A_SH = np.einsum('...i,ij,...j->...', t_sh, M, n)
+            n = np.stack([nx, ny, nz], axis=-1)
+            t_sv = np.stack([np.cos(dip) * np.cos(azimuth),np.cos(dip) * np.sin(azimuth),np.sin(dip)], axis=-1)
+            t_sh = np.stack([-np.sin(azimuth),np.cos(azimuth),np.zeros_like(azimuth)], axis=-1)
 
+            M = np.array(self.mechanism.as_matrix())
+
+            A_P = np.einsum('ij,...i,...j->...', M, n, n)
+            A_SV = np.einsum('ij,...i,...j->...', M, t_sv, n)
+            A_SH = np.einsum('ij,...i,...j->...', M, t_sh, n)
+
+        # ---- CASE 2: Single Force ----
         elif isinstance(self.mechanism, SingleForce):
-            F = self.mechanism.as_vector()
+            # Calculate unit vector n in spherical coordinates
+            nx = np.cos(dip) * np.cos(azimuth)
+            ny = np.cos(dip) * np.sin(azimuth)
+            nz = np.sin(dip)
+            # unit vector in the ray's direction
+            n = np.stack([nx, ny, nz], axis=-1)
+            t_sv = np.stack([-np.sin(dip) * np.cos(azimuth), -np.sin(dip) * np.sin(azimuth), np.cos(dip)], axis=-1)
+            t_sh = np.stack([np.sin(azimuth), -np.cos(azimuth), np.zeros_like(azimuth)], axis=-1)
 
-            A_P  = np.einsum('...i,i->...', n, F)
-            A_SV = np.einsum('...i,i->...', t_sv, F)
-            A_SH = np.einsum('...i,i->...', t_sh, F)
+            F = np.array(self.mechanism.as_vector())
 
+            A_P = np.einsum('i,...i->...', F, n)
+            A_SV = np.einsum('i,...i->...', F, t_sv)
+            A_SH = np.einsum('i,...i->...', F, t_sh)
+
+        # ---- CASE 3: Isotropic ----
         elif isinstance(self.mechanism, IsotropicSource):
-            A_P  = np.ones_like(nx) * self.mechanism.magnitude
+            A_P = np.ones_like(nx) * self.mechanism.magnitude
             A_SV = np.ones_like(nx) * self.mechanism.magnitude
             A_SH = np.ones_like(nx) * self.mechanism.magnitude
 
