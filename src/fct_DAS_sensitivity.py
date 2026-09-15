@@ -520,6 +520,19 @@ class DASSensor:
 
     # --------------------- PLOTTING METHODS ---------------------
 
+    def angular_sensitivity(self,wave_type):
+        az = np.linspace(-180, 180, 500)      
+        dip = np.linspace(-90, 90, 500)       
+
+        ones = np.ones((len(dip), len(az)))
+        az_grid = az * ones
+        dip_grid = dip[:, np.newaxis] * ones
+
+        data = self.sensitivity( wave_type, az_grid, dip_grid)
+
+        return data
+
+
     def plot_polar_pattern(self, wave_type, cmap=None, title="DAS Polar Pattern"):
         """
         Polar plot of the DAS amplitude pattern.
@@ -537,18 +550,12 @@ class DASSensor:
         import matplotlib.patheffects as pe
         import numpy as np
 
-        az = np.linspace(0, 360, 100)      # 1D
-        dip = np.linspace(-90, 90, 50)       # 1D
-
-        ones = np.ones((len(dip), len(az)))
-        az_grid = az * ones
-        dip_grid = dip[:, np.newaxis] * ones
-
-        data = self.sensitivity( wave_type, az_grid, dip_grid)
+        data = self.angular_sensitivity(wave_type)
         #data = np.where(np.abs(data)<1e-14, np.nan, data)
 
         # Normalize data
-        data_norm = data 
+        data_norm = data
+
 
         figure, ax = plt.subplots(
             1, 1, figsize=(8, 8),
@@ -556,18 +563,19 @@ class DASSensor:
         )
 
         if cmap is None:
-            if wave_type in ['P', 'S'] and data.min()>0:
+            if wave_type in ['P', 'S'] :
                 cmap = 'Reds'
 
-            elif wave_type in ['SV', 'SH'] or wave_type in ['P', 'S'] and data.min()<0:
+            elif wave_type in ['SV', 'SH']:
                 cmap = 'seismic'
                 
             else:
-                cmap = 'cool'
+                raise ValueError(f"Unknown wave_type: {wave_type}. Expected one of ['P', 'S', 'SV', 'SH'].")
 
         # Convert angles to radians for plotting
-        theta = np.radians(az_grid)
-        r = dip_grid  # dip in degrees for radial coordinate
+        theta = np.linspace(0, 2*np.pi, data.shape[1])
+        r = np.linspace(90, -90, data.shape[0])  # dip in degrees for radial coordinate
+        
 
         # Plot
         cs = ax.contourf(theta, r, data_norm, levels=100, cmap=cmap)
@@ -582,7 +590,7 @@ class DASSensor:
         ax.grid(linewidth=1)
 
         # Central line at r=0
-        line, = ax.plot(np.linspace(-np.pi, np.pi, 300), np.zeros(300), color='black', lw=2)
+        line, = ax.plot(np.linspace(-np.pi, np.pi, 300), np.full(300,0), color='black', lw=2)
         line.set_path_effects([pe.Stroke(linewidth=4, foreground='white'), pe.Normal()])
 
         # Colorbar
@@ -594,11 +602,11 @@ class DASSensor:
         plt.title(title, fontsize=16)
         plt.show()
 
-    def plot_3d_fiber_response(self, wave_type, cmap=None, title="DAS 3D Response"):
+    def plot_3d_fiber_response(self, wave_type, cmap=None, view = None, title="DAS 3D Response"):
         """
         3D plot of the DAS fiber response with directional line.
         """
-        az = np.linspace(0, 360, 500)      # 1D
+        az = np.linspace(-180, 180, 500)      # 1D
         dip = np.linspace(-90, 90, 500)       # 1D
 
         ones = np.ones((len(dip), len(az)))
@@ -606,14 +614,17 @@ class DASSensor:
         dip_grid = dip[:, np.newaxis] * ones
 
         data = self.sensitivity( wave_type, az_grid, dip_grid)
+        
+        
         #data = np.where(np.abs(data)<1e-14, np.nan, data)
         data = data.T
         data_signed = data
         data_radius = np.abs(data)
         # Spherical grid
         theta = np.linspace(0, np.pi, data_radius.shape[0])
-        phi = np.linspace(0, 2*np.pi, data_radius.shape[1])
+        phi = np.linspace(-np.pi, np.pi, data_radius.shape[1])
         Theta, Phi = np.meshgrid(theta, phi)
+
 
         # Radius for shape
         rho = data_radius / np.max(data_radius)
@@ -663,7 +674,7 @@ class DASSensor:
 
         # Optional directional line
         azimuth = np.radians(self.azimuth)
-        dip = np.radians(-self.dip+90)
+        dip = np.radians(-self.dip-90)
         dx, dy, dz = np.sin(dip) * np.cos(azimuth), np.sin(dip) * np.sin(azimuth), -np.cos(dip)
         t = np.linspace(-1.5, 1.5, 100)
         ax.plot3D(t*dx, t*dy, t*dz, color='black', linewidth=2.5, label="DAS Fiber")
@@ -681,14 +692,187 @@ class DASSensor:
 
 
         # Increase label font size
+        # swap X and Y label as the plotting function rotate from x axis but everything else uses the noth 
+        # as a reference (N = Y)
         ax.set_xlabel("X", fontsize=20, labelpad=0)
         ax.set_ylabel("Y", fontsize=20, labelpad=0)
         ax.set_zlabel("Z", fontsize=20, labelpad=0)
-        ax.view_init(45, 45)
+        if view is None:
+            view = [20,150]
+        ax.view_init(view[0], view[1])
         # ax.legend()
 
         plt.tight_layout()
         plt.show()
+
+class Fiber:
+    """
+    Container for multiple DAS channels represented as DASSensor objects.
+    """
+
+    def __init__(
+        self,
+        dataframe,
+        columns,
+        gauge_length=None,
+        wavelength=None,
+        velocity=None,
+    ):
+        """
+        Parameters
+        ----------
+        dataframe : pandas.DataFrame
+            DataFrame containing the DAS channel information.
+
+        columns : dict
+            Dictionary mapping DASSensor attributes to DataFrame columns.
+
+            Example:
+            {
+                "latitude": "lat",
+                "longitude": "lon",
+                "depth": "depth",
+                "azimuth": "azimuth",
+                "dip": "dip"
+            }
+
+        gauge_length : float
+            DAS gauge length.
+
+        wavelength : float, optional
+            Wavelength used for finite wavelength sensitivity.
+
+        velocity : float, optional
+            Wave velocity.
+        """
+
+        self.dataframe = dataframe.copy()
+
+        self.columns = columns
+
+        self.gauge_length = gauge_length
+        self.wavelength = wavelength
+        self.velocity = velocity
+
+        # Create one DASSensor per DataFrame row
+        self.channels = []
+
+        for index, row in self.dataframe.iterrows():
+
+            sensor = DASSensor(
+                latitude=row[columns["latitude"]],
+                longitude=row[columns["longitude"]],
+                depth=row[columns["depth"]],
+                azimuth=row[columns["azimuth"]],
+                dip=row[columns["dip"]],
+                gauge_length=gauge_length,
+                wavelength=wavelength,
+                velocity=velocity,
+            )
+
+            self.channels.append(sensor)
+
+    def __len__(self):
+        """Return the number of DAS channels."""
+        return len(self.channels)
+
+    def __getitem__(self, index):
+        """Access an individual DAS channel."""
+        return self.channels[index]
+
+    def values(self):
+        """
+        Return channel positions as an array.
+
+        Returns
+        -------
+        ndarray
+            Shape (n_channels, 3)
+            Columns: latitude, longitude, depth
+        """
+
+        return np.array([
+            channel.values()
+            for channel in self.channels
+        ])
+
+    def metadata(self):
+        """
+        Return metadata for all DAS channels as a DataFrame.
+        """
+
+        return pd.DataFrame([
+            channel.metadata()
+            for channel in self.channels
+        ])
+    
+    def plot_polar_pattern(self, wave_type, cmap=None, title="DAS Polar Pattern"):
+            """
+            Polar plot of the DAS amplitude pattern.
+            
+            Parameters
+            ----------
+            azimuth_grid : 2D array
+                Grid of azimuths in degrees, shape matches data
+            dip_grid : 2D array
+                Grid of dips in degrees, shape matches data
+            data : 2D array
+                DAS sensitivity or amplitude for each azimuth/dip
+            """
+            import matplotlib.pyplot as plt
+            import matplotlib.patheffects as pe
+            import numpy as np
+
+            first = True
+            for das in self:
+                if first:
+                    data = np.abs(das.angular_sensitivity(wave_type))
+                    first = False
+                else: 
+                    data += np.abs(das.angular_sensitivity(wave_type))
+    
+            # Normalize data
+            #data_norm = data/len(self)
+            data_norm = data/np.max(data)
+    
+    
+            figure, ax = plt.subplots(
+                1, 1, figsize=(8, 8),
+                subplot_kw=dict(projection='polar'), tight_layout=True
+            )
+    
+            if cmap is None:
+                cmap = 'Reds'
+    
+            # Convert angles to radians for plotting
+            theta = np.linspace(0, 2*np.pi, data.shape[1])
+            r = np.linspace(90, -90, data.shape[0])  # dip in degrees for radial coordinate
+            
+    
+            # Plot
+            cs = ax.contourf(theta, r, data_norm, levels=100, cmap=cmap)
+    
+            # Ticks and labels
+            ax.tick_params(axis='both', labelsize=20)
+            ax.set_rticks([])
+            angles = np.arange(0, 360, 45)
+            ax.set_xticks(np.deg2rad(angles))
+            ax.set_xticklabels([f"{a}°" for a in angles], fontsize=20)
+            ax.tick_params(axis='x', pad=15)
+            ax.grid(linewidth=1)
+    
+            # Central line at r=0
+            line, = ax.plot(np.linspace(-np.pi, np.pi, 300), np.full(300,0), color='black', lw=2)
+            line.set_path_effects([pe.Stroke(linewidth=4, foreground='white'), pe.Normal()])
+    
+            # Colorbar
+            cbar = figure.colorbar(cs, ax=ax, fraction=0.05, pad=0.11)
+            cbar.set_label('Normalized amplitude', fontsize=18)
+            #cbar.set_ticks(ticks)
+            cbar.ax.tick_params(labelsize=18)
+    
+            plt.title(title, fontsize=16)
+            plt.show()
 
 class GeoUtils:
     """
@@ -747,7 +931,7 @@ class Ray:
     def __init__(self, ray_array):
         self.ray = np.asarray(ray_array)
 
-    def plot_views(self):
+    def plot_views(self, view = None):
         """
         Plot the ray in 4 views:
         - 3D
@@ -772,7 +956,9 @@ class Ray:
         ax1.set_xlabel("Longitude")
         ax1.set_ylabel("Latitude")
         ax1.set_zlabel("Depth")
-        ax1.view_init(90, 90)
+        if view is None:
+            view = [45,45]
+        ax1.view_init(view[0], view[1])
 
         ax1.invert_zaxis()
 
